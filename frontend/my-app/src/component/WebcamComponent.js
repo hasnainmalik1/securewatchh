@@ -1,10 +1,9 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import Webcam from 'react-webcam';
 
 const WebcamComponent = () => {
     const webcamRef = useRef(null);
-    const [containerSize, setContainerSize] = useState({ width: 400, height: 400 }); // Assuming default container size
+    const [containerSize, setContainerSize] = useState({ width: 627, height: 470 }); // Assuming default container size
     const [position, setPosition] = useState({ x: 0, y: 0 });
     const [size, setSize] = useState({ width: 100, height: 100 });
     const [isDragging, setIsDragging] = useState(false);
@@ -68,10 +67,14 @@ const WebcamComponent = () => {
             setSize(prevSize => ({ ...prevSize, height: newHeight }));
         }
     };
-    //eslint-disable-next-line
+
     useEffect(() => {
         const captureVideo = async () => {
             const video = webcamRef.current.video;
+            if (!video) {
+                console.log("No camera attached. Please attach a camera.");
+                return;
+            }
 
             const canvas = document.createElement('canvas');
             canvas.width = video.videoWidth;
@@ -82,14 +85,17 @@ const WebcamComponent = () => {
 
             const formData = new FormData();
             formData.append('video', blob, 'video.jpg');
-
+            formData.append('x', String(position.x)); // Convert to string
+            formData.append('y', String(position.y)); // Convert to string
+            formData.append('width', String(size.width)); // Convert to string
+            formData.append('height', String(size.height)); // Convert to string
             // Send video data to Flask server
             sendVideoData(formData);
         };
 
         const intervalId = setInterval(captureVideo, 1000); // adjust the interval as needed
         return () => clearInterval(intervalId);
-    }, []);
+    }, [position, size]); // Include position and size in the dependencies
 
     // Function to send video data to Flask server
     const sendVideoData = async (formData) => {
@@ -119,7 +125,6 @@ const WebcamComponent = () => {
                     audio={false}
                     ref={webcamRef}
                     screenshotFormat="image/jpeg"
-
                 />
             </div>
             <div
@@ -138,16 +143,14 @@ const WebcamComponent = () => {
             ></div>
             <div style={{ position: "relative" }} >
                 <label>Width:</label>
-                <input type="number" value={inputWidth} onChange={handleWidthChange} />
+                <input type="range" min="01" max={containerSize.width - position.x} value={inputWidth} onChange={handleWidthChange} />
             </div>
             <div>
                 <label>Height:</label>
-                <input type="number" value={inputHeight} onChange={handleHeightChange} />
+                <input type="range" min="01" max={containerSize.height - position.y} value={inputHeight} onChange={handleHeightChange} />
             </div>
         </div>
     );
 };
-
-
 
 export default WebcamComponent;
